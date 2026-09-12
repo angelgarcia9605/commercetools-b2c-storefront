@@ -1,79 +1,88 @@
 import { create } from 'zustand';
-import { createCart, addLineItem, removeLineItem, updateLineItemQuantity } from '../commercetools/cart';
-import { Cart } from '../commercetools/cart';
+import { persist } from 'zustand/middleware';
+
+interface LineItem {
+  id: string;
+  productId: string;
+  variantId: number;
+  name: Record<string, string>;
+  quantity: number;
+  price: {
+    value: {
+      centAmount: number;
+      currencyCode: string;
+    };
+  };
+  totalPrice: {
+    centAmount: number;
+    currencyCode: string;
+  };
+  variant: {
+    sku?: string;
+    images?: Array<{ url: string }>;;
+  };
+}
+
+interface Cart {
+  id: string;
+  lineItems: LineItem[];
+  totalPrice: {
+    centAmount: number;
+    currencyCode: string;
+  };
+}
 
 interface CartStore {
   cart: Cart | null;
-  loading: boolean;
-  error: string | null;
-  initCart: (cart: Cart) => void;
+  setCart: (cart: Cart) => void;
   addItem: (productId: string, variantId: number, quantity: number) => Promise<void>;
   removeItem: (lineItemId: string) => Promise<void>;
   updateQuantity: (lineItemId: string, quantity: number) => Promise<void>;
-  clearCart: () => void;
+  clearCart: () => Promise<void>;
 }
 
-export const useCartStore = create<CartStore>((set, get) => ({
-  cart: null,
-  loading: false,
-  error: null,
-
-  initCart: (cart: Cart) => {
-    set({ cart });
-  },
-
-  addItem: async (productId: string, variantId: number, quantity: number) => {
-    const { cart } = get();
-    if (!cart) return;
-
-    set({ loading: true, error: null });
-    try {
-      const response = await addLineItem(cart.id, cart.version, productId, variantId, quantity);
-      if (response.data) {
-        set({ cart: response.data });
-      }
-    } catch (error: any) {
-      set({ error: error.message });
-    } finally {
-      set({ loading: false });
+export const useCartStore = create<CartStore>()(n  persist(
+    (set, get) => ({
+      cart: null,
+      setCart: (cart) => set({ cart }),
+      addItem: async (productId, variantId, quantity) => {
+        // Simulate API call to add item to cart
+        const currentCart = get().cart;
+        if (currentCart) {
+          const existingItem = currentCart.lineItems.find(
+            (item) => item.productId === productId && item.variantId === variantId
+          );
+          if (existingItem) {
+            existingItem.quantity += quantity;
+          }
+          set({ cart: currentCart });
+        }
+      },
+      removeItem: async (lineItemId) => {
+        const currentCart = get().cart;
+        if (currentCart) {
+          currentCart.lineItems = currentCart.lineItems.filter(
+            (item) => item.id !== lineItemId
+          );
+          set({ cart: currentCart });
+        }
+      },
+      updateQuantity: async (lineItemId, quantity) => {
+        const currentCart = get().cart;
+        if (currentCart) {
+          const item = currentCart.lineItems.find((item) => item.id === lineItemId);
+          if (item) {
+            item.quantity = quantity;
+            set({ cart: currentCart });
+          }
+        }
+      },
+      clearCart: async () => {
+        set({ cart: null });
+      },
+    }),
+    {
+      name: 'cart-storage',
     }
-  },
-
-  removeItem: async (lineItemId: string) => {
-    const { cart } = get();
-    if (!cart) return;
-
-    set({ loading: true, error: null });
-    try {
-      const response = await removeLineItem(cart.id, cart.version, lineItemId);
-      if (response.data) {
-        set({ cart: response.data });
-      }
-    } catch (error: any) {
-      set({ error: error.message });
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  updateQuantity: async (lineItemId: string, quantity: number) => {
-    const { cart } = get();
-    if (!cart) return;
-
-    set({ loading: true, error: null });
-    try {
-      const response = await updateLineItemQuantity(cart.id, cart.version, lineItemId, quantity);
-      if (response.data) {
-        set({ cart: response.data });
-      }
-    } catch (error: any) {
-      set({ error: error.message });
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  clearCart: () => {
-    set({ cart: null });
-  },
-}));
+  )
+);

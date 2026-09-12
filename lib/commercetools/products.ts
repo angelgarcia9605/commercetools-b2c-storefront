@@ -1,95 +1,104 @@
-import { apiCall } from './api';
+// commercetools products API client
+import apiClient from '@/lib/api-client';
+import config from '@/lib/config';
 
-export interface ProductSearchParams {
-  query?: string;
-  facets?: string[];
-  sort?: string;
-  limit?: number;
-  offset?: number;
-  filter?: string[];
+export interface PriceValue {
+  centAmount: number;
+  currencyCode: string;
+}
+
+export interface Price {
+  value: PriceValue;
+  country?: string;
+}
+
+export interface Image {
+  url: string;
+  dimensions?: {
+    w: number;
+    h: number;
+  };
+}
+
+export interface Attribute {
+  name: string;
+  value: string | number;
+}
+
+export interface ProductVariant {
+  id: number;
+  sku?: string;
+  prices: Price[];
+  images: Image[];
+  attributes?: Attribute[];
 }
 
 export interface Product {
   id: string;
   key?: string;
-  name: { [key: string]: string };
-  description?: { [key: string]: string };
-  slug: { [key: string]: string };
-  masterVariant: Variant;
-  variants: Variant[];
-  productType: { id: string };
-  categories: Array<{ id: string; typeId: string }>;
-  createdAt: string;
-  lastModifiedAt: string;
+  version: number;
+  name: Record<string, string>;
+  description?: Record<string, string>;
+  slug?: Record<string, string>;
+  masterVariant: ProductVariant;
+  variants?: ProductVariant[];
+  categories?: Array<{ id: string; name: Record<string, string> }>;
 }
 
-export interface Variant {
-  id: number;
-  sku?: string;
-  key?: string;
-  prices: Price[];
-  images: Image[];
-  attributes: Attribute[];
+export interface ProductResponse {
+  data: {
+    results: Product[];
+    total: number;
+    offset: number;
+    limit: number;
+  };
 }
 
-export interface Price {
-  id: string;
-  value: Money;
-  country?: string;
-  customerGroup?: { id: string; typeId: string };
-}
-
-export interface Money {
-  type: 'centPrecision';
-  currencyCode: string;
-  centAmount: number;
-  fractionDigits: number;
-}
-
-export interface Image {
-  url: string;
-  dimensions: { w: number; h: number };
-  label?: string;
-}
-
-export interface Attribute {
-  name: string;
-  value: any;
-}
-
-export const getProducts = async (
-  params: ProductSearchParams = {}
-) => {
-  const { query = '', facets = [], sort = '', limit = 20, offset = 0, filter = [] } = params;
-
-  let searchParams = `/product-projections/search?limit=${limit}&offset=${offset}`;
-
-  if (query) {
-    searchParams += `&text="${query}"`;
+export async function getProducts(
+  limit: number = config.pagination.defaultPageSize,
+  offset: number = 0
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(
+      `/projects/${config.commercetools.projectKey}/products`,
+      {
+        params: {
+          limit,
+          offset,
+        },
+      }
+    );
+    return { data: response.data };
+  } catch (error: any) {
+    throw new Error(`Failed to fetch products: ${error.message}`);
   }
+}
 
-  if (sort) {
-    searchParams += `&sort=${sort}`;
+export async function getProductBySlug(
+  slug: string
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(
+      `/projects/${config.commercetools.projectKey}/products`,
+      {
+        params: {
+          where: `slug(en-US="${slug}")`,
+        },
+      }
+    );
+    return { data: response.data };
+  } catch (error: any) {
+    throw new Error(`Failed to fetch product: ${error.message}`);
   }
+}
 
-  filter.forEach((f) => {
-    searchParams += `&filter=${encodeURIComponent(f)}`;
-  });
-
-  facets.forEach((facet) => {
-    searchParams += `&facet=${encodeURIComponent(facet)}`;
-  });
-
-  return apiCall<any>('GET', searchParams);
-};
-
-export const getProductById = async (id: string) => {
-  return apiCall<Product>('GET', `/product-projections/${id}`);
-};
-
-export const getProductBySlug = async (slug: string) => {
-  return apiCall<{ results: Product[] }>(
-    'GET',
-    `/product-projections?where=slug(en-US="${slug}")`
-  );
-};
+export async function getProductById(id: string): Promise<Product> {
+  try {
+    const response = await apiClient.get(
+      `/projects/${config.commercetools.projectKey}/products/${id}`
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(`Failed to fetch product: ${error.message}`);
+  }
+}
