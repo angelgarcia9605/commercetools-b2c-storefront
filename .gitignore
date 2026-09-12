@@ -1,25 +1,33 @@
-node_modules
-.next
-.env
-.env.local
+.env.local.example
 .env.*.local
-dist
-build
+node_modules/
+.next/
+dist/
+build/
 .DS_Store
 *.log
-.idea
-.vscode
+.idea/
+.vscode/settings.json
 *.swp
 *.swo
 
-public/uploads
+# Test coverage
+coverage/
+.nyc_output/
 
-# Dependencies
-yarn.lock
-package-lock.json
+# Build artifacts
+.turbo/
 
-# Environment variables
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# IDE
+.idea
+.vscode
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
