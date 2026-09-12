@@ -1,34 +1,37 @@
 {
   "name": "commercetools-b2c-storefront",
   "version": "1.0.0",
-  "description": "B2C Storefront with commercetools integration",
+  "description": "B2C E-commerce Storefront powered by commercetools",
+  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "next": "^14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@commercetools/sdk-client-v2": "^2.4.0",
-    "@commercetools/sdk-auth": "^2.4.0",
-    "@commercetools/platform-sdk": "^2.4.0",
-    "axios": "^1.6.0",
+    "next": "^14.0.0",
+    "typescript": "^5.2.0",
     "zustand": "^4.4.0",
-    "swr": "^2.2.0",
+    "axios": "^1.6.0",
     "clsx": "^2.0.0",
-    "js-cookie": "^3.0.5"
+    "date-fns": "^2.30.0"
   },
   "devDependencies": {
-    "typescript": "^5.3.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@types/js-cookie": "^3.0.6",
-    "tailwindcss": "^3.3.0",
-    "postcss": "^8.4.0",
-    "autoprefixer": "^10.4.0"
+    "@tailwindcss/forms": "^0.5.7",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "eslint": "^8.50.0",
+    "eslint-config-next": "^14.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
