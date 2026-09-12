@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
 interface FacetOption {
   label: string;
   value: string;
@@ -19,56 +17,38 @@ export default function Facets({
   selectedFacets,
   onFacetChange,
 }: FacetsProps) {
-  const [expandedFacets, setExpandedFacets] = useState<Set<string>>(new Set());
-
-  const toggleFacet = (facetName: string) => {
-    const newExpanded = new Set(expandedFacets);
-    if (newExpanded.has(facetName)) {
-      newExpanded.delete(facetName);
-    } else {
-      newExpanded.add(facetName);
-    }
-    setExpandedFacets(newExpanded);
-  };
-
   return (
-    <aside className="bg-white rounded-lg shadow-md p-6 h-fit">
-      <h2 className="text-lg font-bold text-primary mb-4">Filters</h2>
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <h2 className="text-xl font-bold text-primary mb-6">Filters</h2>
 
       {Object.entries(facets).map(([facetName, options]) => (
-        <div key={facetName} className="mb-6 border-b pb-4">
-          <button
-            onClick={() => toggleFacet(facetName)}
-            className="w-full flex justify-between items-center font-semibold text-primary hover:text-secondary transition"
-          >
-            {facetName}
-            <span>{expandedFacets.has(facetName) ? '−' : '+'}</span>
-          </button>
-
-          {expandedFacets.has(facetName) && (
-            <div className="mt-3 space-y-2">
-              {options.map((option) => (
-                <label key={option.value} className="flex items-center gap-2 cursor-pointer">
+        <div key={facetName} className="mb-6 pb-6 border-b last:border-b-0">
+          <h3 className="text-lg font-semibold text-primary mb-4">{facetName}</h3>
+          <div className="space-y-3">
+            {options.map((option) => {
+              const isChecked = selectedFacets[facetName]?.includes(option.value) || false;
+              return (
+                <label key={option.value} className="flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={selectedFacets[facetName]?.includes(option.value) || false}
+                    checked={isChecked}
                     onChange={(e) =>
                       onFacetChange(facetName, option.value, e.target.checked)
                     }
-                    className="w-4 h-4 rounded border-gray-300"
+                    className="w-4 h-4 text-secondary rounded focus:ring-2 focus:ring-secondary"
                   />
-                  <span className="text-sm text-gray-700">
+                  <span className="ml-3 text-gray-700 text-sm">
                     {option.label}
                     {option.count && (
-                      <span className="text-gray-500 ml-1">({option.count})</span>
+                      <span className="text-gray-500 ml-2">({option.count})</span>
                     )}
                   </span>
                 </label>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
       ))}
-    </aside>
+    </div>
   );
 }
