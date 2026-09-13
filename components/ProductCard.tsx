@@ -10,24 +10,42 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  if (!product || !product.masterVariant) {
+    return null;
+  }
+
   const variant = product.masterVariant;
-  const price = variant.prices[0];
-  const name = product.name['en-US'];
-  const slug = product.slug?.['en-US'] || product.id;
+  const price = variant.prices?.[0];
+  const name = product.name?.['en-US'] || product.name?.['en'] || 'Product';
+  const slug = product.slug?.['en-US'] || product.slug?.['en'] || product.id;
   const image = variant.images?.[0];
+  const description = product.description?.['en-US'] || product.description?.['en'];
+
+  // Fallback if no price
+  if (!price) {
+    console.warn('Product missing price:', product.id);
+    return null;
+  }
 
   return (
     <Link href={`/products/${slug}`}>
       <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition cursor-pointer h-full flex flex-col">
         {/* Image */}
-        {image && (
+        {image && image.url ? (
           <div className="relative w-full h-48 bg-gray-200 overflow-hidden">
             <Image
               src={image.url}
               alt={name}
               fill
               className="object-cover hover:scale-105 transition"
+              onError={(e) => {
+                console.warn('Image failed to load:', image.url);
+              }}
             />
+          </div>
+        ) : (
+          <div className="relative w-full h-48 bg-gray-300 flex items-center justify-center">
+            <span className="text-gray-500">No image</span>
           </div>
         )}
 
@@ -39,9 +57,9 @@ export default function ProductCard({ product }: ProductCardProps) {
           </h3>
 
           {/* Description */}
-          {product.description?.['en-US'] && (
+          {description && (
             <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow">
-              {product.description['en-US']}
+              {description}
             </p>
           )}
 
