@@ -1,6 +1,6 @@
 import SearchBar from '@/components/SearchBar';
 import ProductCard from '@/components/ProductCard';
-import { mockProducts } from '@/lib/commercetools/mockProducts';
+import { getProducts } from '@/lib/commercetools/products';
 import { Product } from '@/lib/commercetools/products';
 
 export const metadata = {
@@ -9,8 +9,24 @@ export const metadata = {
 };
 
 export default async function HomePage() {
-  // Use mock products for now
-  const products: Product[] = mockProducts.slice(0, 4);
+  let products: Product[] = [];
+  let error: string | null = null;
+
+  try {
+    console.log('HomePage: fetching products from commercetools');
+    const response = await getProducts(4, 0);
+    console.log('HomePage: response from getProducts', response);
+    
+    if (response && response.results && response.results.length > 0) {
+      products = response.results;
+      console.log('HomePage: loaded', products.length, 'products');
+    } else {
+      console.log('HomePage: no products returned');
+    }
+  } catch (err: any) {
+    console.error('HomePage: error fetching products:', err);
+    error = err.message;
+  }
 
   return (
     <div className="w-full">
@@ -30,6 +46,12 @@ export default async function HomePage() {
       {/* Featured Products */}
       <section className="mb-12">
         <h2 className="text-3xl font-bold text-primary mb-8">Featured Products</h2>
+
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-8">
+            Error loading products: {error}
+          </div>
+        )}
 
         {products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
