@@ -2,13 +2,17 @@
 import config from '@/lib/config';
 
 export interface PriceValue {
+  type?: string;
   centAmount: number;
   currencyCode: string;
+  fractionDigits?: number;
 }
 
 export interface Price {
+  id?: string;
   value: PriceValue;
   country?: string;
+  key?: string;
 }
 
 export interface Image {
@@ -27,6 +31,7 @@ export interface Attribute {
 export interface ProductVariant {
   id: number;
   sku?: string;
+  key?: string;
   prices: Price[];
   images: Image[];
   attributes?: Attribute[];
@@ -45,10 +50,10 @@ export interface Product {
   id: string;
   key?: string;
   version: number;
-  name?: Record<string, string>; // Flattened for backward compatibility
-  description?: Record<string, string>; // Flattened for backward compatibility
-  slug?: Record<string, string>; // Flattened for backward compatibility
-  masterVariant?: ProductVariant; // Flattened for backward compatibility
+  name?: Record<string, string>;
+  description?: Record<string, string>;
+  slug?: Record<string, string>;
+  masterVariant?: ProductVariant;
   masterData?: {
     current?: ProductData;
     staged?: ProductData;
@@ -133,7 +138,13 @@ export async function getProducts(
     }
 
     const data = await response.json();
-    const normalizedResults = (data.results || []).map(normalizeProduct);
+    console.log('Raw products response:', data);
+    
+    const normalizedResults = (data.results || []).map((product: any) => {
+      const normalized = normalizeProduct(product);
+      console.log('Normalized product:', normalized);
+      return normalized;
+    });
     
     return {
       results: normalizedResults,

@@ -11,13 +11,14 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   if (!product) {
+    console.warn('ProductCard: product is null');
     return null;
   }
 
   // Get variant - either from flattened structure or masterData
   const variant = product.masterVariant || product.masterData?.current?.masterVariant;
   if (!variant) {
-    console.warn('Product missing variant:', product.id);
+    console.warn('ProductCard: no variant found for product', product.id);
     return null;
   }
 
@@ -33,14 +34,10 @@ export default function ProductCard({ product }: ProductCardProps) {
   const descObj = product.description || product.masterData?.current?.description;
   const description = descObj?.['en-US'] || descObj?.['en'] || descObj?.['de-DE'];
   
-  // Get price
-  const price = variant.prices?.[0];
-  
-  // Get image
-  const image = variant.images?.[0];
-
-  // If no price, show fallback message
-  if (!price) {
+  // Get price - handle both formats
+  const prices = variant.prices || [];
+  if (prices.length === 0) {
+    console.warn('ProductCard: no prices found for product', product.id);
     return (
       <div className="bg-white rounded-lg shadow-md overflow-hidden p-4 text-center">
         <h3 className="text-lg font-semibold text-primary mb-2">{name}</h3>
@@ -48,6 +45,12 @@ export default function ProductCard({ product }: ProductCardProps) {
       </div>
     );
   }
+
+  const price = prices[0];
+  console.log('ProductCard price object:', price);
+  
+  // Get image
+  const image = variant.images?.[0];
 
   return (
     <Link href={`/products/${slug}`}>
@@ -66,8 +69,11 @@ export default function ProductCard({ product }: ProductCardProps) {
             />
           </div>
         ) : (
-          <div className="relative w-full h-48 bg-gray-300 flex items-center justify-center">
-            <span className="text-gray-500">No image</span>
+          <div className="relative w-full h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-4xl mb-2">📦</div>
+              <span className="text-white text-sm font-semibold">No image</span>
+            </div>
           </div>
         )}
 
@@ -86,7 +92,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
 
           {/* Price */}
-          {price && (
+          {price && price.value && (
             <div className="flex justify-between items-center mt-auto">
               <span className="text-xl font-bold text-secondary">
                 {formatPrice(price.value.centAmount, price.value.currencyCode)}
