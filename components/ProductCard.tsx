@@ -10,21 +10,43 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  if (!product || !product.masterVariant) {
+  if (!product) {
     return null;
   }
 
-  const variant = product.masterVariant;
-  const price = variant.prices?.[0];
-  const name = product.name?.['en-US'] || product.name?.['en'] || 'Product';
-  const slug = product.slug?.['en-US'] || product.slug?.['en'] || product.id;
-  const image = variant.images?.[0];
-  const description = product.description?.['en-US'] || product.description?.['en'];
-
-  // Fallback if no price
-  if (!price) {
-    console.warn('Product missing price:', product.id);
+  // Get variant - either from flattened structure or masterData
+  const variant = product.masterVariant || product.masterData?.current?.masterVariant;
+  if (!variant) {
+    console.warn('Product missing variant:', product.id);
     return null;
+  }
+
+  // Get name from flattened structure or masterData - try multiple languages
+  const nameObj = product.name || product.masterData?.current?.name;
+  const name = nameObj?.['en-US'] || nameObj?.['en'] || nameObj?.['de-DE'] || 'Product';
+  
+  // Get slug
+  const slugObj = product.slug || product.masterData?.current?.slug;
+  const slug = slugObj?.['en-US'] || slugObj?.['de-DE'] || product.id;
+  
+  // Get description
+  const descObj = product.description || product.masterData?.current?.description;
+  const description = descObj?.['en-US'] || descObj?.['en'] || descObj?.['de-DE'];
+  
+  // Get price
+  const price = variant.prices?.[0];
+  
+  // Get image
+  const image = variant.images?.[0];
+
+  // If no price, show fallback message
+  if (!price) {
+    return (
+      <div className="bg-white rounded-lg shadow-md overflow-hidden p-4 text-center">
+        <h3 className="text-lg font-semibold text-primary mb-2">{name}</h3>
+        <p className="text-gray-500 text-sm">Price not available</p>
+      </div>
+    );
   }
 
   return (
