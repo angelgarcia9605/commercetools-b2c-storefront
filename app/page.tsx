@@ -1,32 +1,16 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import SearchBar from '@/components/SearchBar';
 import ProductCard from '@/components/ProductCard';
-import { getProducts } from '@/lib/commercetools/products';
+import { mockProducts } from '@/lib/commercetools/mockProducts';
 import { Product } from '@/lib/commercetools/products';
 
-export default function HomePage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export const metadata = {
+  title: 'StoreFront | B2C E-commerce',
+  description: 'Shop quality products at unbeatable prices with StoreFront',
+};
 
-  useEffect(() => {
-    const loadFeaturedProducts = async () => {
-      try {
-        const response = await getProducts({ limit: 8 });
-        if (response.data && response.data.results) {
-          setProducts(response.data.results);
-        }
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadFeaturedProducts();
-  }, []);
+export default async function HomePage() {
+  // Use mock products for now
+  const products: Product[] = mockProducts.slice(0, 4);
 
   return (
     <div className="w-full">
@@ -47,27 +31,13 @@ export default function HomePage() {
       <section className="mb-12">
         <h2 className="text-3xl font-bold text-primary mb-8">Featured Products</h2>
 
-        {loading && (
-          <div className="text-center py-12">
-            <p className="text-gray-600">Loading products...</p>
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            Error loading products: {error}
-          </div>
-        )}
-
-        {!loading && products.length > 0 && (
+        {products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
-        )}
-
-        {!loading && products.length === 0 && (
+        ) : (
           <div className="text-center py-12">
             <p className="text-gray-600">No products available</p>
           </div>
