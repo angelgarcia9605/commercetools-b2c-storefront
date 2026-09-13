@@ -1,6 +1,7 @@
 // API client configuration and interceptors
 import axios, { AxiosInstance, AxiosError, AxiosResponse } from 'axios';
 import config from './config';
+import { getAccessToken } from './commercetools/auth';
 
 const createApiClient = (): AxiosInstance => {
   const client = axios.create({
@@ -10,11 +11,13 @@ const createApiClient = (): AxiosInstance => {
 
   // Request interceptor
   client.interceptors.request.use(
-    (config) => {
-      // Add auth token if available
-      const token = localStorage.getItem('commercetools_token');
-      if (token) {
+    async (config) => {
+      try {
+        // Get access token from commercetools
+        const token = await getAccessToken();
         config.headers.Authorization = `Bearer ${token}`;
+      } catch (error) {
+        console.error('Failed to set authorization header:', error);
       }
       return config;
     },
@@ -26,9 +29,9 @@ const createApiClient = (): AxiosInstance => {
     (response: AxiosResponse) => response,
     (error: AxiosError) => {
       if (error.response?.status === 401) {
-        // Handle unauthorized
-        localStorage.removeItem('commercetools_token');
-        // Redirect to login if needed
+        // Handle unauthorized - clear token cache
+        const { clearTokenCache } = require('./commercetools/auth');
+        clearTokenCache();
       }
       return Promise.reject(error);
     }

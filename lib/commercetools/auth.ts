@@ -1,104 +1,47 @@
-import { apiCall } from './api';
+// commercetools authentication
+import config from '@/lib/config';
 
-export interface Customer {
-  id: string;
-  version: number;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  middleName?: string;
-  title?: string;
-  dateOfBirth?: string;
-  defaultBillingAddressId?: string;
-  defaultShippingAddressId?: string;
-  addresses: Address[];
-  isEmailVerified: boolean;
-  authenticationMode: string;
-  createdAt: string;
-  lastModifiedAt: string;
-}
+let cachedToken: string | null = null;
+let tokenExpiry: number | null = null;
 
-export interface Address {
-  id: string;
-  firstName?: string;
-  lastName?: string;
-  streetName?: string;
-  streetNumber?: string;
-  postalCode?: string;
-  city?: string;
-  country: string;
-  phone?: string;
-}
+export async function getAccessToken(): Promise<string> {
+  // Return cached token if still valid
+  if (cachedToken && tokenExpiry && Date.now() < tokenExpiry) {
+    return cachedToken;
+  }
 
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
+  try {
+    const credentials = Buffer.from(
+      `${config.commercetools.clientId}:${config.commercetools.clientSecret}`
+    ).toString('base64');
 
-export interface SignUpData {
-  email: string;
-  password: string;
-  firstName?: string;
-  lastName?: string;
-  addresses?: Address[];
-  defaultBillingAddress?: number;
-  defaultShippingAddress?: number;
-}
-
-export const loginCustomer = async (credentials: LoginCredentials) => {
-  return apiCall<Customer>('POST', '/login', credentials);
-};
-
-export const signUpCustomer = async (data: SignUpData) => {
-  return apiCall<Customer>('POST', '/customers', data);
-};
-
-export const getCustomer = async (customerId: string) => {
-  return apiCall<Customer>('GET', `/customers/${customerId}`);
-};
-
-export const updateCustomer = async (
-  customerId: string,
-  version: number,
-  updates: Partial<Customer>
-) => {
-  return apiCall<Customer>('POST', `/customers/${customerId}`, {
-    version,
-    actions: Object.entries(updates).map(([key, value]) => ({
-      action: `set${key.charAt(0).toUpperCase() + key.slice(1)}`,
-      [key]: value,
-    })),
-  });
-};
-
-export const addAddress = async (
-  customerId: string,
-  version: number,
-  address: Address
-) => {
-  return apiCall<Customer>('POST', `/customers/${customerId}`, {
-    version,
-    actions: [
-      {
-        action: 'addAddress',
-        address,
+    const response = await fetch(`${config.commercetools.authUrl}/oauth/token`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-    ],
-  });
-};
+      body: 'grant_type=client_credentials&scope=manage_project:test-estafeta',
+      cache: 'no-store',
+    });
 
-export const removeAddress = async (
-  customerId: string,
-  version: number,
-  addressId: string
-) => {
-  return apiCall<Customer>('POST', `/customers/${customerId}`, {
-    version,
-    actions: [
-      {
-        action: 'removeAddress',
-        addressId,
-      },
-    ],
-  });
-};
+    if (!response.ok) {
+      throw new Error(`Auth failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    cachedToken = data.access_token;
+    // Cache for 55 minutes (token expires in 60)
+    tokenExpiry = Date.now() + data.expires_in * 1000 - 300000;
+
+    return cachedToken;
+  } catch (error: any) {
+    console.error('Failed to get access token:', error);
+    throw new Error(`Authentication failed: ${error.message}`);
+  }
+}
+
+export function clearTokenCache() {
+  cachedToken = null;
+  tokenExpiry = null;
+}
