@@ -1,5 +1,4 @@
 // commercetools products API client
-import apiClient from '@/lib/api-client';
 import config from '@/lib/config';
 
 export interface PriceValue {
@@ -46,12 +45,10 @@ export interface Product {
 }
 
 export interface ProductResponse {
-  data: {
-    results: Product[];
-    total: number;
-    offset: number;
-    limit: number;
-  };
+  results: Product[];
+  total: number;
+  offset: number;
+  limit: number;
 }
 
 export async function getProducts(
@@ -59,18 +56,43 @@ export async function getProducts(
   offset: number = 0
 ): Promise<ProductResponse> {
   try {
-    const response = await apiClient.get(
-      `/projects/${config.commercetools.projectKey}/products`,
-      {
-        params: {
-          limit,
-          offset,
-        },
-      }
-    );
-    return { data: response.data };
+    const url = `${config.commercetools.apiUrl}/projects/${config.commercetools.projectKey}/products?limit=${limit}&offset=${offset}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      console.error('Product fetch failed:', response.statusText, response.status);
+      // Return empty results instead of throwing
+      return {
+        results: [],
+        total: 0,
+        offset,
+        limit,
+      };
+    }
+
+    const data = await response.json();
+    return {
+      results: data.results || [],
+      total: data.total || 0,
+      offset: data.offset || offset,
+      limit: data.limit || limit,
+    };
   } catch (error: any) {
-    throw new Error(`Failed to fetch products: ${error.message}`);
+    console.error('Failed to fetch products:', error.message);
+    // Return empty results instead of throwing
+    return {
+      results: [],
+      total: 0,
+      offset,
+      limit,
+    };
   }
 }
 
@@ -78,27 +100,62 @@ export async function getProductBySlug(
   slug: string
 ): Promise<ProductResponse> {
   try {
-    const response = await apiClient.get(
-      `/projects/${config.commercetools.projectKey}/products`,
-      {
-        params: {
-          where: `slug(en-US="${slug}")`,
-        },
-      }
-    );
-    return { data: response.data };
+    const url = `${config.commercetools.apiUrl}/projects/${config.commercetools.projectKey}/products?where=slug(en-US="${slug}")`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      return {
+        results: [],
+        total: 0,
+        offset: 0,
+        limit: 1,
+      };
+    }
+
+    const data = await response.json();
+    return {
+      results: data.results || [],
+      total: data.total || 0,
+      offset: data.offset || 0,
+      limit: data.limit || 1,
+    };
   } catch (error: any) {
-    throw new Error(`Failed to fetch product: ${error.message}`);
+    console.error('Failed to fetch product:', error.message);
+    return {
+      results: [],
+      total: 0,
+      offset: 0,
+      limit: 1,
+    };
   }
 }
 
-export async function getProductById(id: string): Promise<Product> {
+export async function getProductById(id: string): Promise<Product | null> {
   try {
-    const response = await apiClient.get(
-      `/projects/${config.commercetools.projectKey}/products/${id}`
-    );
-    return response.data;
+    const url = `${config.commercetools.apiUrl}/projects/${config.commercetools.projectKey}/products/${id}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return await response.json();
   } catch (error: any) {
-    throw new Error(`Failed to fetch product: ${error.message}`);
+    console.error('Failed to fetch product:', error.message);
+    return null;
   }
 }
