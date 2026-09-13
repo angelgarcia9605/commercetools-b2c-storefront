@@ -91,9 +91,23 @@ function normalizeProduct(product: any): Product {
   return product;
 }
 
+function getAuthTokenUrl(): string {
+  // For server-side requests, use absolute URL
+  if (typeof window === 'undefined') {
+    // Server-side: use environment variable or localhost
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    return `${baseUrl}/api/auth/token`;
+  }
+  // Client-side: use relative URL
+  return '/api/auth/token';
+}
+
 async function getAccessToken(): Promise<string> {
   try {
-    const response = await fetch('/api/auth/token');
+    const tokenUrl = getAuthTokenUrl();
+    console.log('Fetching token from:', tokenUrl);
+    
+    const response = await fetch(tokenUrl);
     if (!response.ok) {
       throw new Error('Failed to get access token');
     }
