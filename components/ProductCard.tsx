@@ -41,9 +41,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     return (
       <div className="bg-white rounded-lg shadow-md overflow-hidden p-4 text-center">
         <h3 className="text-lg font-semibold text-primary mb-2">{name}</h3>
-        <p className="text-gray-500 text-sm">Price not 
-        
-        </p>
+        <p className="text-gray-500 text-sm">Price not available</p>
       </div>
     );
   }
