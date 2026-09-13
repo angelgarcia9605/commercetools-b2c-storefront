@@ -16,15 +16,9 @@ export default async function HomePage() {
   try {
     const response = await getProducts(4, 0);
     debug = {
-      responseTruthy: !!response,
-      hasResults: !!response?.results,
+      response: JSON.stringify(response, null, 2),
       resultsLength: response?.results?.length || 0,
       total: response?.total,
-      offset: response?.offset,
-      limit: response?.limit,
-      firstProductId: response?.results?.[0]?.id,
-      firstProductName: response?.results?.[0]?.name,
-      firstProductMasterData: !!response?.results?.[0]?.masterData,
     };
     
     if (response && response.results && response.results.length > 0) {
@@ -55,11 +49,9 @@ export default async function HomePage() {
         <h2 className="text-3xl font-bold text-primary mb-8">Featured Products</h2>
 
         {/* Debug Info */}
-        <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded text-sm font-mono">
+        <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded text-xs font-mono whitespace-pre-wrap overflow-auto max-h-96">
           <div className="text-blue-900">
-            <div>Products loaded: {products.length}</div>
-            <div>Total: {debug?.total}</div>
-            <div>Error: {error || 'none'}</div>
+            {debug?.response}
           </div>
         </div>
 
