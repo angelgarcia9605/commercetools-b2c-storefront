@@ -1,6 +1,4 @@
-// commercetools authentication
-import config from '@/lib/config';
-
+// commercetools authentication - client side
 let cachedToken: string | null = null;
 let tokenExpiry: number | null = null;
 
@@ -11,28 +9,16 @@ export async function getAccessToken(): Promise<string> {
   }
 
   try {
-    const credentials = Buffer.from(
-      `${config.commercetools.clientId}:${config.commercetools.clientSecret}`
-    ).toString('base64');
-
-    const response = await fetch(`${config.commercetools.authUrl}/oauth/token`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: 'grant_type=client_credentials&scope=manage_project:test-estafeta',
-      cache: 'no-store',
-    });
-
+    const response = await fetch('/api/auth/token');
+    
     if (!response.ok) {
-      throw new Error(`Auth failed: ${response.statusText}`);
+      throw new Error(`Token request failed: ${response.statusText}`);
     }
 
     const data = await response.json();
     cachedToken = data.access_token;
-    // Cache for 55 minutes (token expires in 60)
-    tokenExpiry = Date.now() + data.expires_in * 1000 - 300000;
+    // Cache for 55 minutes
+    tokenExpiry = Date.now() + 55 * 60 * 1000;
 
     return cachedToken;
   } catch (error: any) {
