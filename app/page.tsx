@@ -11,21 +11,28 @@ export const metadata = {
 export default async function HomePage() {
   let products: Product[] = [];
   let error: string | null = null;
+  let debug: any = null;
 
   try {
-    console.log('HomePage: fetching products from commercetools');
     const response = await getProducts(4, 0);
-    console.log('HomePage: response from getProducts', response);
+    debug = {
+      responseTruthy: !!response,
+      hasResults: !!response?.results,
+      resultsLength: response?.results?.length || 0,
+      total: response?.total,
+      offset: response?.offset,
+      limit: response?.limit,
+      firstProductId: response?.results?.[0]?.id,
+      firstProductName: response?.results?.[0]?.name,
+      firstProductMasterData: !!response?.results?.[0]?.masterData,
+    };
     
     if (response && response.results && response.results.length > 0) {
       products = response.results;
-      console.log('HomePage: loaded', products.length, 'products');
-    } else {
-      console.log('HomePage: no products returned');
     }
   } catch (err: any) {
-    console.error('HomePage: error fetching products:', err);
     error = err.message;
+    debug = { error: err.message };
   }
 
   return (
@@ -46,6 +53,15 @@ export default async function HomePage() {
       {/* Featured Products */}
       <section className="mb-12">
         <h2 className="text-3xl font-bold text-primary mb-8">Featured Products</h2>
+
+        {/* Debug Info */}
+        <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded text-sm font-mono">
+          <div className="text-blue-900">
+            <div>Products loaded: {products.length}</div>
+            <div>Total: {debug?.total}</div>
+            <div>Error: {error || 'none'}</div>
+          </div>
+        </div>
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-8">
