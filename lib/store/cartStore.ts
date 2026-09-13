@@ -19,7 +19,7 @@ interface LineItem {
   };
   variant: {
     sku?: string;
-    images?: Array<{ url: string }>;;
+    images?: Array<{ url: string }>;
   };
 }
 
@@ -41,7 +41,7 @@ interface CartStore {
   clearCart: () => Promise<void>;
 }
 
-export const useCartStore = create<CartStore>()(n  persist(
+export const useCartStore = create<CartStore>()(  persist(
     (set, get) => ({
       cart: null,
       setCart: (cart) => set({ cart }),

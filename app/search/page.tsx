@@ -1,105 +1,131 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import SearchBar from '@/components/SearchBar';
 import ProductCard from '@/components/ProductCard';
-import { searchProducts } from '@/lib/commercetools/search';
+import { getProducts } from '@/lib/commercetools/products';
 import { Product } from '@/lib/commercetools/products';
 
-export default function SearchPage() {
-  const searchParams = useSearchParams();
-  const query = searchParams.get('q') || '';
+export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState(query);
+  const [debug, setDebug] = useState<any>(null);
 
-  useEffect(() => {
-    const performSearch = async () => {
-      if (!searchQuery.trim()) {
-        setProducts([]);
-        return;
-      }
-
+  const loadProducts = async () => {
+    try {
       setLoading(true);
       setError(null);
-      try {
-        const response = await searchProducts({
-          text: searchQuery,
-          limit: 20,
-        });
-        if (response.data && response.data.results) {
-          setProducts(response.data.results);
-        }
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      console.log('Loading products...');
+      const response = await getProducts(4, 0);
+      console.log('Response:', response);
+      setDebug({
+        response: JSON.stringify(response, null, 2),
+        resultsLength: response?.results?.length || 0,
+        total: response?.total,
+      });
+      
+      if (response && response.results && response.results.length > 0) {
+        setProducts(response.results);
+      } else {
+        setProducts([]);
       }
-    };
-
-    performSearch();
-  }, [searchQuery]);
-
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
+    } catch (err: any) {
+      console.error('Error loading products:', err);
+      setError(err.message);
+      setDebug({ error: err.message });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
 
   return (
     <div className="w-full">
-      {/* Search Bar */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-primary mb-4">Search Products</h1>
-        <SearchBar onSearch={handleSearch} />
-      </div>
-
-      {/* Results */}
-      {searchQuery && (
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-primary mb-4">
-            Results for "{searchQuery}"
-          </h2>
-
-          {loading && (
-            <div className="text-center py-12">
-              <p className="text-gray-600">Searching products...</p>
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              Error: {error}
-            </div>
-          )}
-
-          {!loading && products.length > 0 && (
-            <>
-              <p className="text-gray-600 mb-4">
-                Found {products.length} product{products.length !== 1 ? 's' : ''}
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            </>
-          )}
-
-          {!loading && products.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-600 text-lg">No products found matching your search</p>
-              <p className="text-gray-500 mt-2">Try different keywords</p>
-            </div>
-          )}
+      {/* Hero Section */}
+      <section className="bg-gradient-to-r from-primary to-secondary text-white py-16 mb-12 rounded-lg">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Welcome to StoreFront</h1>
+          <p className="text-lg md:text-xl mb-8">
+            Discover amazing products with the best prices
+          </p>
+          <div className="max-w-2xl mx-auto">
+            <SearchBar />
+          </div>
         </div>
-      )}
+      </section>
 
-      {!searchQuery && (
-        <div className="text-center py-12">
-          <p className="text-gray-600 text-lg">Enter a search query to find products</p>
+      {/* Featured Products */}
+      <section className="mb-12">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-3xl font-bold text-primary">Featured Products</h2>
+          <button
+            onClick={loadProducts}
+            disabled={loading}
+            className="bg-secondary hover:bg-accent text-white px-4 py-2 rounded transition disabled:opacity-50"
+          >
+            {loading ? 'Loading...' : 'Reload'}
+          </button>
         </div>
-      )}
+
+        {/* Debug Info */}
+        {debug && (
+          <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded text-xs font-mono whitespace-pre-wrap overflow-auto max-h-96">
+            <div className="text-blue-900">
+              {debug?.response || JSON.stringify(debug, null, 2)}
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-8">
+            Error loading products: {error}
+          </div>
+        )}
+
+        {loading && products.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">Loading products...</p>
+          </div>
+        ) : products.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+                                            <p className="text-gray-600">No products available</p>
+
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-600">No products available</p>
+            <p className="text-gray-600">No products available</p>
+
+          </div>
+
+        )}
+      </section>
+
+      {/* Features Section */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
+        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+          <div className="text-4xl mb-4">🚚</div>
+          <h3 className="text-xl font-bold text-primary mb-2">Free Shipping</h3>
+          <p className="text-gray-600">On orders over $50</p>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+          <div className="text-4xl mb-4">💰</div>
+          <h3 className="text-xl font-bold text-primary mb-2">Best Prices</h3>
+          <p className="text-gray-600">Guaranteed lowest prices</p>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+          <div className="text-4xl mb-4">✅</div>
+          <h3 className="text-xl font-bold text-primary mb-2">Quality Assured</h3>
+          <p className="text-gray-600">100% authentic products</p>
+        </div>
+      </section>
     </div>
   );
 }

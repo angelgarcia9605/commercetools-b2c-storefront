@@ -2,13 +2,17 @@
 import config from '@/lib/config';
 
 export interface PriceValue {
+  type?: string;
   centAmount: number;
   currencyCode: string;
+  fractionDigits?: number;
 }
 
 export interface Price {
+  id?: string;
   value: PriceValue;
   country?: string;
+  key?: string;
 }
 
 export interface Image {
@@ -21,27 +25,40 @@ export interface Image {
 
 export interface Attribute {
   name: string;
-  value: string | number;
+  value: string | number | any;
 }
 
 export interface ProductVariant {
   id: number;
   sku?: string;
+  key?: string;
   prices: Price[];
   images: Image[];
   attributes?: Attribute[];
 }
 
-export interface Product {
-  id: string;
-  key?: string;
-  version: number;
+export interface ProductData {
   name: Record<string, string>;
   description?: Record<string, string>;
   slug?: Record<string, string>;
   masterVariant: ProductVariant;
   variants?: ProductVariant[];
   categories?: Array<{ id: string; name: Record<string, string> }>;
+}
+
+export interface Product {
+  id: string;
+  key?: string;
+  version: number;
+  name?: Record<string, string>;
+  description?: Record<string, string>;
+  slug?: Record<string, string>;
+  masterVariant?: ProductVariant;
+  masterData?: {
+    current?: ProductData;
+    staged?: ProductData;
+    published?: boolean;
+  };
 }
 
 export interface ProductResponse {
@@ -51,24 +68,81 @@ export interface ProductResponse {
   limit: number;
 }
 
+// Helper function to normalize products from commercetools API
+function normalizeProduct(product: any): Product {
+  // Handle both formats: new commercetools API and legacy
+  if (product.masterData?.current) {
+    // New format with masterData
+    const current = product.masterData.current;
+    return {
+      id: product.id,
+      key: product.key,
+      version: product.version,
+      // Flatten the data for easier access
+      name: current.name,
+      description: current.description,
+      slug: current.slug,
+      masterVariant: current.masterVariant,
+      // Keep original structure too
+      masterData: product.masterData,
+    };
+  }
+  // Legacy format - return as is
+  return product;
+}
+
+function getAuthTokenUrl(): string {
+  // For server-side requests, use absolute URL
+  if (typeof window === 'undefined') {
+    // Server-side: use environment variable or localhost
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    return `${baseUrl}/api/auth/token`;
+  }
+  // Client-side: use relative URL
+  return '/api/auth/token';
+}
+
+async function getAccessToken(): Promise<string> {
+  try {
+    const tokenUrl = getAuthTokenUrl();
+    console.log('Fetching token from:', tokenUrl);
+    
+    const response = await fetch(tokenUrl);
+    if (!response.ok) {
+      throw new Error('Failed to get access token');
+    }
+    const data = await response.json();
+    return data.access_token;
+  } catch (error: any) {
+    console.error('Token error:', error);
+    throw new Error(`Authentication failed: ${error.message}`);
+  }
+}
+
 export async function getProducts(
-  limit: number = config.pagination.defaultPageSize,
+  limit: number = 12,
   offset: number = 0
 ): Promise<ProductResponse> {
   try {
-    const url = `${config.commercetools.apiUrl}/projects/${config.commercetools.projectKey}/products?limit=${limit}&offset=${offset}`;
+    const token = await getAccessToken();
+    const url = `${config.commercetools.apiUrl}/${config.commercetools.projectKey}/products?limit=${limit}&offset=${offset}`;
     
+    console.log('Fetching products from:', url);
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       cache: 'no-store',
     });
 
     if (!response.ok) {
-      console.error('Product fetch failed:', response.statusText, response.status);
-      // Return empty results instead of throwing
+      console.error('Product fetch failed:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('Error details:', errorText);
+      
       return {
         results: [],
         total: 0,
@@ -78,15 +152,22 @@ export async function getProducts(
     }
 
     const data = await response.json();
+    console.log('Raw products response:', data);
+    
+    const normalizedResults = (data.results || []).map((product: any) => {
+      const normalized = normalizeProduct(product);
+      console.log('Normalized product:', normalized);
+      return normalized;
+    });
+    
     return {
-      results: data.results || [],
+      results: normalizedResults,
       total: data.total || 0,
       offset: data.offset || offset,
       limit: data.limit || limit,
     };
   } catch (error: any) {
     console.error('Failed to fetch products:', error.message);
-    // Return empty results instead of throwing
     return {
       results: [],
       total: 0,
@@ -100,11 +181,13 @@ export async function getProductBySlug(
   slug: string
 ): Promise<ProductResponse> {
   try {
-    const url = `${config.commercetools.apiUrl}/projects/${config.commercetools.projectKey}/products?where=slug(en-US="${slug}")`;
+    const token = await getAccessToken();
+    const url = `${config.commercetools.apiUrl}/${config.commercetools.projectKey}/products?where=slug(en-US="${slug}")`;
     
     const response = await fetch(url, {
       method: 'GET',
       headers: {
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       cache: 'no-store',
@@ -120,8 +203,10 @@ export async function getProductBySlug(
     }
 
     const data = await response.json();
+    const normalizedResults = (data.results || []).map(normalizeProduct);
+    
     return {
-      results: data.results || [],
+      results: normalizedResults,
       total: data.total || 0,
       offset: data.offset || 0,
       limit: data.limit || 1,
@@ -139,11 +224,13 @@ export async function getProductBySlug(
 
 export async function getProductById(id: string): Promise<Product | null> {
   try {
-    const url = `${config.commercetools.apiUrl}/projects/${config.commercetools.projectKey}/products/${id}`;
+    const token = await getAccessToken();
+    const url = `${config.commercetools.apiUrl}/${config.commercetools.projectKey}/products/${id}`;
     
     const response = await fetch(url, {
       method: 'GET',
       headers: {
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       cache: 'no-store',
@@ -153,7 +240,8 @@ export async function getProductById(id: string): Promise<Product | null> {
       return null;
     }
 
-    return await response.json();
+    const product = await response.json();
+    return normalizeProduct(product);
   } catch (error: any) {
     console.error('Failed to fetch product:', error.message);
     return null;

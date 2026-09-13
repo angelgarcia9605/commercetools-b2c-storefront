@@ -10,22 +10,37 @@ export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [debug, setDebug] = useState<any>(null);
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('Loading products...');
+      const response = await getProducts(4, 0);
+      console.log('Response:', response);
+      setDebug({
+        response: JSON.stringify(response, null, 2),
+        resultsLength: response?.results?.length || 0,
+        total: response?.total,
+      });
+      
+      if (response && response.results && response.results.length > 0) {
+        setProducts(response.results);
+      } else {
+        setProducts([]);
+      }
+    } catch (err: any) {
+      console.error('Error loading products:', err);
+      setError(err.message);
+      setDebug({ error: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadFeaturedProducts = async () => {
-      try {
-        const response = await getProducts({ limit: 8 });
-        if (response.data && response.data.results) {
-          setProducts(response.data.results);
-        }
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadFeaturedProducts();
+    loadProducts();
   }, []);
 
   return (
@@ -45,29 +60,43 @@ export default function HomePage() {
 
       {/* Featured Products */}
       <section className="mb-12">
-        <h2 className="text-3xl font-bold text-primary mb-8">Featured Products</h2>
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-3xl font-bold text-primary">Featured Products</h2>
+          <button
+            onClick={loadProducts}
+            disabled={loading}
+            className="bg-secondary hover:bg-accent text-white px-4 py-2 rounded transition disabled:opacity-50"
+          >
+            {loading ? 'Loading...' : 'Reload'}
+          </button>
+        </div>
 
-        {loading && (
-          <div className="text-center py-12">
-            <p className="text-gray-600">Loading products...</p>
+        {/* Debug Info */}
+        {debug && (
+          <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded text-xs font-mono whitespace-pre-wrap overflow-auto max-h-96">
+            <div className="text-blue-900">
+              {debug?.response || JSON.stringify(debug, null, 2)}
+            </div>
           </div>
         )}
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-8">
             Error loading products: {error}
           </div>
         )}
 
-        {!loading && products.length > 0 && (
+        {loading && products.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">Loading products...</p>
+          </div>
+        ) : products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
-        )}
-
-        {!loading && products.length === 0 && (
+        ) : (
           <div className="text-center py-12">
             <p className="text-gray-600">No products available</p>
           </div>
